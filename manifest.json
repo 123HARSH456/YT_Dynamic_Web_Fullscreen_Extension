@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Dynamic Web Fullscreen",
+  "version": "1.3",
+  "description": "Resize YouTube video to fill browser window while preserving aspect ratio.",
+  "permissions": ["scripting", "activeTab"],
+  "action": {
+    "default_title": "Toggle Dynamic Web Fullscreen",
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
