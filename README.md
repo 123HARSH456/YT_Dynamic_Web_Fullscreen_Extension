@@ -3,7 +3,7 @@
 Tired of YouTube’s default fullscreen or theater modes not fitting your workflow? YouTube Focus Frame gives you a smarter, cleaner viewing experience — perfectly fitted to your browser window.
 
 🛠️ How It Works:
-The extension injects a script into YouTube pages.
+The extension injects a script into YouTube pages to resize the player.
 
 It finds the main video player and stretches it to cover the entire browser window (not your full screen).
 
