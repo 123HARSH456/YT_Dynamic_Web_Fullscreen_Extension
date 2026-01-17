@@ -1,134 +1,86 @@
 chrome.action.onClicked.addListener((tab) => {
-  chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    func: toggleDynamicFullscreen,
-  });
+  if (tab.url?.includes("youtube.com/watch")) {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: toggleDynamicFullscreen,
+    });
+  }
 });
 
 function toggleDynamicFullscreen() {
-  const FLAG = "__yt_dynamic_fullscreen__";
+  const STYLE_ID = "yt-dynamic-fullscreen-style";
+  const existingStyle = document.getElementById(STYLE_ID);
 
-  const video = document.querySelector("video");
-  const player =
-    document.querySelector("#player") ||
-    document.querySelector("#movie_player");
-  const thumbnailOverlay = document.querySelector(
-    ".ytp-cued-thumbnail-overlay"
-  );
-
-  if (!video || !player) {
-    alert("This doesn't look like a YouTube video page.");
+  //OFF
+  if (existingStyle) {
+    existingStyle.remove();
+    window.dispatchEvent(new Event("resize"));
     return;
   }
 
-  //TURN OFF
-  if (window[FLAG]) {
-    clearInterval(window[FLAG].intervalId);
-    window.removeEventListener("resize", window[FLAG].resizeHandler);
-    if (window[FLAG].resizeObserver) window[FLAG].resizeObserver.disconnect();
+  const moviePlayer = document.querySelector("#movie_player");
+  if (!moviePlayer) return alert("Player not found.");
 
-    document.body.style = window[FLAG].originalBodyStyle;
-    document.documentElement.style = window[FLAG].originalHtmlStyle;
-    document.documentElement.style.overflow = window[FLAG].originalHtmlOverflow || "";
-
-    for (const [el, display] of window[FLAG].hiddenElements) {
-      el.style.display = display;
+  //Injected CSS
+  const css = `
+    ytd-app, ytd-watch-flexy, #columns, #primary, #primary-inner, #player {
+      transform: none !important;
+      animation: none !important;
+      perspective: none !important;
+      filter: none !important;
+      will-change: auto !important;
+      contain: none !important;
     }
 
-    if (video) video.style = window[FLAG].originalVideoStyle;
-    if (player) player.style = window[FLAG].originalPlayerStyle;
-    if (thumbnailOverlay)
-      thumbnailOverlay.style.display = window[FLAG].originalThumbnailDisplay;
-
-    delete window[FLAG];
-    return;
-  }
-
-  //TURN ON
-  const hiddenElements = [];
-  for (const el of document.body.children) {
-    if (!el.contains(player)) {
-      hiddenElements.push([el, el.style.display]);
-      el.style.display = "none";
-    }
-  }
-
-  const originalStyles = {
-    originalBodyStyle: document.body.getAttribute("style") || "",
-    originalHtmlStyle: document.documentElement.getAttribute("style") || "",
-    originalHtmlOverflow: document.documentElement.style.overflow || "",
-    originalVideoStyle: video.getAttribute("style") || "",
-    originalPlayerStyle: player.getAttribute("style") || "",
-    originalThumbnailDisplay: thumbnailOverlay?.style.display || "",
-    hiddenElements,
-  };
-
-  document.body.style.margin = "0";
-  document.body.style.backgroundColor = "black";
-  document.body.style.overflow = "hidden";
-  document.documentElement.style.backgroundColor = "black";
-  document.documentElement.style.overflow = "hidden";
-
-  if (thumbnailOverlay) thumbnailOverlay.style.display = "none";
-
-  player.style.position = "fixed";
-  player.style.top = "50%";
-  player.style.left = "50%";
-  player.style.transform = "translate(-50%, -50%)";
-  player.style.zIndex = "9999";
-  player.style.margin = "0";
-  player.style.backgroundColor = "black";
-
-  video.style.display = "block";
-  video.style.backgroundColor = "black";
-  video.style.objectFit = "contain";
-  video.style.maxWidth = "100vw";
-  video.style.maxHeight = "100vh";
-
-  const resize = () => {
-    if (!video.videoWidth || !video.videoHeight) return;
-
-    const winW = window.innerWidth;
-    const winH = window.innerHeight;
-    const aspect = video.videoWidth / video.videoHeight;
-
-    let newW = winW;
-    let newH = winW / aspect;
-
-    if (newH > winH) {
-      newH = winH;
-      newW = newH * aspect;
+    html, body, ytd-app {
+      overflow: hidden !important;
     }
 
-    video.style.width = `${newW}px`;
-    video.style.height = `${newH}px`;
-    player.style.width = `${newW}px`;
-    player.style.height = `${newH}px`;
-
-    const isFullscreen =
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement;
-
-    if (isFullscreen) {
-      video.style.maxWidth = "100%";
-      video.style.maxHeight = "100%";
+    #movie_player {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 2147483647 !important;
+      background-color: #000 !important;
     }
-  };
 
-  const resizeHandler = () => resize();
-  const resizeObserver = new ResizeObserver(resize);
-  resizeObserver.observe(video);
+    .html5-video-container {
+      width: 100% !important;
+      height: 100% !important;
+      top: 0 !important;
+      left: 0 !important;
+    }
 
-  const intervalId = setInterval(resize, 500);
-  window.addEventListener("resize", resizeHandler);
-  resize();
+    video.html5-main-video {
+      width: 100% !important;
+      height: 100% !important;
+      top: 0 !important;
+      left: 0 !important;
+      object-fit: contain !important; 
+      display: block !important;
+      visibility: visible !important;
+    }
 
-  window[FLAG] = {
-    ...originalStyles,
-    intervalId,
-    resizeHandler,
-    resizeObserver,
-  };
+    #masthead-container, 
+    #secondary, 
+    #comments, 
+    #info, 
+    #meta,
+    ytd-merch-shelf-renderer {
+      display: none !important;
+    }
+
+    .ytd-watch-metadata {
+      display: none !important;
+    }
+  `;
+
+  const style = document.createElement("style");
+  style.id = STYLE_ID;
+  style.textContent = css;
+  document.head.appendChild(style);
+
+  setTimeout(() => window.dispatchEvent(new Event("resize")), 100);
 }
